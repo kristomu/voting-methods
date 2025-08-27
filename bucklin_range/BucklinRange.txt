@@ -1,0 +1,49 @@
+Start with the bar equal to max rating.
+
+We start with a list of unassigned voters, equal to all the voters, and a list
+of unelected candidates. We also have a list of elected candidates and, for each
+candidate, a list of supporters of that candidate: these lists start empty.
+
+Until the unassigned voters' list is empty or the bar b < 0:
+
+For each unelected candidate X:
+	Let an unassigned voter be a potential supporter of X if he rates X 
+	higher than the bar.
+
+	Let a supporter's surplus be how much more highly he rates
+	the candidate than the bar; i.e. his rating of X, minus b.
+
+	Range version:
+		if the score, the sum of potential supporters' surpluses, 
+		is greater than or equal to the threshold, consider X electable.
+	Bucklin version:
+		If the score, the number of potential supporters, is 
+		greater than or equal to the threshold, consider X electable.
+
+Elect one of the electable candidates found above, if any. If there is a tie,
+choose one of the candidates with greatest score. (Some additional tiebreaks or 
+more sophisticated logic could be useful here.)
+
+For each elected candidate Y:
+	Move all potential supporters of Y from the unassigned voters list
+	to Y's assigned voters list.
+
+If no voters were reassigned anywhere:
+	Lower the bar by some very slight amount, QLTD style.
+
+Loop.
+
+Return the elected candidates with weights equal to their number of supporters.
+
+Outer procedure: Determine the lowest threshold that elects the desired number
+of candidates or parties. This is the outcome.
+
+Things that could be interesting to implement:
+	- Getting rid of the need for the bar to lower near-continuously. This
+		can be done in a very ugly manner by binary search, or
+		potentially in a less ugly manner with appropriate data 
+		structures. The only problem is that the method would be
+		harder to understand...
+	- Quantized Webster type party list where a party only gets a seat's
+		worth of votes at a time (so none are wasted). Initial
+		party thresholds would be easy to implement.

@@ -1,0 +1,63 @@
+Ordinary Bucklin type Bucklin-Range PR, which we may call "double Bucklin", 
+goes like this:
+
+	1. If more than t unassigned voters rate unelected party X above the 
+		bar, X is deemed electable.
+	2. The electable candidate with the most support is elected.
+	
+	3. If any number of voters rate an elected candidate above the bar,
+		the candidate gets those voters. (Ties handled separately)
+
+	4. If no reassignment happened, loop with a slightly lower bar.
+
+It should be relatively easy to make the bar progression go quicker for the
+Bucklin variant mentioned above, since things will only really change at 
+discrete rating intervals.
+
+Our Websterized version might go like this:
+	- Our target points are k seats (for the initial threshold) and one
+	  seat thereafter. We assume that round(t*supp) is the number of
+	  seats that a support value of supp gives us.
+		That implies that we get one seat at t/2, two seats at
+		3t/2, three seats at 5t/2 etc. generally (2s-1)t/2.
+
+	- So let k be the minimal number of seats required to get in; then 
+		the whole thing proceeds rather similarly.
+
+	- If more than (2k-1)t/2 unassigned voters rate unelected party 
+		X above the bar, X is deemed electable.
+	- The electable candidate with the most support is elected.
+
+	- If t or more unassigned voters rate elected party Y above the bar,
+		assign t of these voters to Y by fractional assignment. Choose 
+		the party with the most potential supporters, and break further
+		ties by random ballot.a
+			(Why t? Because (2s+1)t/2 - (2(s-1)+1)t/2 = t, so t is
+			 the amount of additional voters required to get
+			 another seat.)
+
+	- If no reassignment happened, loop with the bar equal to the next lower
+		rating.
+
+	- End the loop when the bar is below the minimum rating.
+
+	- Set t to the minimum that gives the desired number of seats. You may 
+	  end up with some unassigned voters. These won't give any parties more
+	  or fewer seats, so assign them to any party you'd like (run step three
+	  of the ordinary method if you want something consistent).
+
+There's no lookahead, so that's why vote management is profitable. Furthermore,
+it's pretty easy to see how to do biproportional representation here: give each
+party an adjustment score so each voter counts as q voters for that party. Since
+Bucklin is monotone, this method should also be monotone. (It's harder to do
+biproportional representation with the Range variant.)
+
+Without thinking of it, I found a solution to the second tie problem as well,
+but it's going to be really really slow in the continuous case. You take
+an infinitesimal amount of support evenly from all potential supporters until
+someone else is either tied with you for potential support or exceeds you in
+total support. Then you switch to that one. (That's Meek, isn't it?)
+
+There doesn't seem to be a way to make this cloneproof because each party gets
+elected at kt + t/2 (for some k >= 0), and then subsequent seats are at t. So
+splitting a party will either be beneficial (if k = 0) or detrimental (k>0).
