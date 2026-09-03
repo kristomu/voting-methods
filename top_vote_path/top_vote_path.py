@@ -169,13 +169,6 @@ def get_paths(subelections, first_prefs, subelections_voters):
 			if cand > leaf_cand and path_matrix[leaf_cand][cand]:
 				continue
 
-			# It's always easier to add candidates to a long
-			# path than a short path. So if we have A==>B
-			# then there's no need to check A->B, because
-			# whenever A->B leads to C, so does A==>B.
-			if has_path_to[leaf_cand]:
-				continue
-
 			recurse_path([cand], leaf_cand, subelections,
 				first_prefs, subelections_voters, has_path_to,
 				is_on_path)
@@ -193,16 +186,21 @@ def get_scores(election, num_candidates):
 	# Get what candidates have paths to others.
 	paths = get_paths(subelections, first_prefs, subelections_voters)
 
-	# Calculate in(X) and out(X).
-	in_vals = np.array(paths).sum(axis=0)
+	# Calculate out(X).
 	out_vals = np.array(paths).sum(axis=1)
 
-	# Create and return a score tuple for each candidate, where the
-	# winner/s have maximum score. (minimum in(X) and, of these,
-	# maximum out(X)).
-	# (Tests seem to indicate that just using out(X) is good enough,
-	# but I haven't verified that.)
-	return list(zip(-in_vals, out_vals))
+	# Return the out_vals.
+	# We don't need the in vals, because selecting the candidate with
+	# highest out(X) value among those with in value 0 is equivalent
+	# to selecting the candidate with highest out(X) value, period;
+	# the only way it could be otherwise is if some candidate X with
+	# in(X) > 0 has out value higher than every candidate with in(X) = 0.
+	# This is impossible because in(X) > 0 implies that there exists
+	# some other candidate Y with a path to X. This path must have
+	# some root Z. By transitivity, out(Z) > out(X) and since Z is a
+	# root, in(Z) = 0, contradicting the assumption.
+	
+	return out_vals
 
 def get_winner_set(election, num_candidates):
 	scores = get_scores(election, num_candidates)
@@ -305,6 +303,35 @@ plurality_failure = [
 	[23, [2]],
 	[20, [3,2]]]
 
+# "Shortcutting" means assuming that when there is already a path
+# from A to B, there is no need to descend down other paths that pass
+# from A through B. This is wrong, and these tests check for
+# incorrect outcomes arising from shortcutting.
+shortcutting_not_invariant_six = [
+	[1, [0, 4, 5, 3, 2, 1]],
+	[1, [1, 0, 3, 2, 4, 5]],
+	[1, [1, 4, 5, 0, 2, 3]],
+	[1, [2, 5, 1, 0, 4, 3]],
+	[1, [3, 0, 1, 2, 4, 5]],
+	[1, [3, 4, 1, 0, 5, 2]],
+	[1, [4, 3, 5, 0, 1, 2]],
+]
+
+# 5-candidate version
+shortcutting_not_invariant_five = [
+	[1, [0, 2, 1, 4, 3]],
+	[1, [0, 3, 2, 4, 1]],
+	[1, [1, 3, 2, 0, 4]],
+	[1, [1, 3, 4, 0, 2]],
+	[1, [1, 4, 0, 3, 2]],
+	[1, [1, 4, 2, 0, 3]],
+	[1, [2, 0, 1, 3, 4]],
+	[1, [2, 3, 4, 0, 1]],
+	[1, [2, 4, 3, 0, 1]],
+	[1, [3, 1, 4, 0, 2]],
+	[1, [4, 0, 2, 1, 3]],
+]
+
 tests_expected_winners_rs = [
 	["Condorcet cycle", 3, condorcet_cycle, [0], [0, 2]],
 	["Differs from IFPP", 3, differs_from_ifpp, [0], [0, 2]],
@@ -313,7 +340,11 @@ tests_expected_winners_rs = [
 	["Inconclusive", 3, inconclusive, [0, 1, 2], [0, 1, 2]],
 	["No early stopping", 5, no_early_stopping, [0], [0, 2]],
 	["Mistaken transitivity", 4, mistaken_transitivity, [1], [1]],
-	["Plurality failure", 4, plurality_failure, [1], [0, 1, 2]]]
+	["Plurality failure", 4, plurality_failure, [1], [0, 1, 2]],
+	["Shortcutting changes outcome (6 candidates)", 6,
+		shortcutting_not_invariant_six, [1], [1, 3]],
+	["Shortcutting changes outcome (5 candidates)", 5,
+		shortcutting_not_invariant_five, [1], [0, 1, 2]]]
 
 for test_name, num_candidates, test_election, expected_outcome, \
 	expected_resistant_set in tests_expected_winners_rs:
